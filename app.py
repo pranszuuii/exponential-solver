@@ -7,23 +7,50 @@ import plotly.graph_objects as go
 # --- CONFIGURATION ---
 st.set_page_config(page_title="False Position using Exponential", page_icon="🔬", layout="wide")
 
-# CSS para sa Presko at Professional look (Mint & Navy Theme)
+# CSS: Pinatindi para labanan ang Browser Extensions/Dark Mode issues
 st.markdown("""
     <style>
-    .stApp { background-color: #f4f9f9; }
-    .input-card { background-color: #ffffff; padding: 25px; border-radius: 15px; border: 1px solid #e0f2f1; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-    div[data-testid="stMetricValue"] { color: #00796b; font-weight: bold; }
-    .step-card { 
-        background-color: white; border-radius: 10px; padding: 20px; 
-        margin-bottom: 20px; border-left: 6px solid #4db6ac;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.02);
+    /* 1. Force background color para sa buong app */
+    .stApp { 
+        background-color: #f4f9f9 !important; 
     }
-    .final-verdict {
-        background-color: #e0f2f1;
+    
+    /* 2. Force visibility ng lahat ng text labels at headers */
+    h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown, .stMetricLabel {
+        color: #004d40 !important;
+    }
+
+    /* 3. Siguraduhin na ang Input Boxes ay laging puti ang background at itim ang font */
+    div[data-baseweb="input"], input {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    /* 4. Step-card styling na hindi matatalo ng dark mode */
+    .step-card { 
+        background-color: #ffffff !important; 
+        color: #004d40 !important;
+        border-left: 6px solid #4db6ac !important;
         padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.1) !important;
+    }
+
+    /* 5. Final Verdict box styling */
+    .final-verdict {
+        background-color: #e0f2f1 !important;
+        padding: 30px;
         border-radius: 15px;
-        border: 2px solid #4db6ac;
-        color: #004d40;
+        border: 2px solid #4db6ac !important;
+        color: #004d40 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+
+    /* 6. Metrics visibility */
+    [data-testid="stMetricValue"] {
+        color: #00796b !important;
+        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -65,10 +92,10 @@ if run_btn:
         a, b = a_in, b_in
         is_valid = True
         if f_num(a) * f_num(b) >= 0:
-            st.warning("⚠️ **No Sign Change:** System is searching for a valid interval...")
+            st.warning("⚠️ **No Sign Change:** System is searching for a valid interval automatically...")
             a, b, found = find_valid_bracket(f_num, a, b)
             if not found:
-                st.error("❌ **Search Failed:** Could not find a root automatically.")
+                st.error("❌ **Search Failed:** Could not find a root automatically. Please adjust your bounds.")
                 is_valid = False
             else:
                 st.success(f"✅ **Interval Adjusted:** [{a:.2f}, {b:.2f}]")
@@ -77,7 +104,7 @@ if run_btn:
             data, detailed_steps = [], []
             z_old = 0
             
-            for i in range(1, 21): # Up to 20 iterations
+            for i in range(1, 21): 
                 fa, fb = f_num(a), f_num(b)
                 z = (a * fb - b * fa) / (fb - fa)
                 fz = f_num(z)
@@ -101,12 +128,12 @@ if run_btn:
                 st.dataframe(df.style.format("{:.6f}"), use_container_width=True)
                 
                 # Plotly Graph
-                x_vals = np.linspace(a_in - 1, b_in + 1, 200)
+                x_vals = np.linspace(a - 1, b + 1, 200)
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=x_vals, y=f_num(x_vals), name="f(x)", line=dict(color='#00796b', width=3)))
                 fig.add_hline(y=0, line_dash="dash", line_color="gray")
-                fig.add_trace(go.Scatter(x=[z], y=[0], mode='markers', marker=dict(size=12, color='red'), name="Root"))
-                fig.update_layout(template="plotly_white", title="Convergence Graph")
+                fig.add_trace(go.Scatter(x=[z], y=[0], mode='markers', marker=dict(size=14, color='red'), name="Root"))
+                fig.update_layout(template="plotly_white", title="Convergence Graph (Visual Verification)")
                 st.plotly_chart(fig, use_container_width=True)
 
             with tab2:
@@ -118,12 +145,12 @@ if run_btn:
                         st.latex(r"z = \frac{a \cdot f(b) - b \cdot f(a)}{f(b) - f(a)}")
                         st.latex(f"z = \\frac{{({s['a']:.4f})({s['fb']:.4f}) - ({s['b']:.4f})({s['fa']:.4f})}}{{{s['fb']:.4f} - ({s['fa']:.4f})}} = {s['z']:.6f}")
                         st.write(f"**Step 2:** $f(z) = {s['fz']:.8f}$")
-                        st.markdown(f"**Result:** Replace {'b' if f_num(s['a'])*s['fz'] < 0 else 'a'} with z.</div>", unsafe_allow_html=True)
+                        st.markdown(f"**Result:** Replace {'b' if f_num(s['a'])*s['fz'] < 0 else 'a'} with z para sa susunod na iteration.</div>", unsafe_allow_html=True)
 
             with tab3:
-                st.download_button("📂 Download CSV Report", df.to_csv(index=False).encode('utf-8'), "Report.csv", "text/csv")
+                st.download_button("📂 Download CSV Report", df.to_csv(index=False).encode('utf-8'), "False_Position_Report.csv", "text/csv")
 
-            # --- THE FINAL ANSWER (Dito makikita ang sagot) ---
+            # --- THE FINAL ANSWER ---
             st.write("---")
             st.markdown(f"""
                 <div class="final-verdict">
@@ -132,9 +159,9 @@ if run_btn:
                         The calculated root for the function <b>{func_input}</b> is approximately:<br>
                         <span style='font-size: 40px; font-weight: bold;'>z ≈ {z:.6f}</span>
                     </p>
-                    <p style='text-align: center;'>Converged in {len(df)} iterations with a residual error of {fz:.2e}.</p>
+                    <p style='text-align: center;'>Converged in <b>{len(df)}</b> iterations with a residual error of <b>{fz:.2e}</b>.</p>
                 </div>
             """, unsafe_allow_html=True)
 
     except Exception as e:
-        st.error(f"⚠️ **Math Error:** Please use standard syntax. Example: exp(x)-20. Error: {e}")
+        st.error(f"⚠️ **Math Error:** Check your syntax (e.g., use 'exp(x)' instead of 'e^x'). Error: {e}")
