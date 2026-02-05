@@ -2,123 +2,139 @@ import streamlit as st
 import sympy as sp
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import time
+import plotly.graph_objects as go
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="False Position Method : Exponential Solver", page_icon="🔬", layout="wide")
+st.set_page_config(page_title="False Position using Exponential", page_icon="🔬", layout="wide")
 
-# Sidebar Branding
-with st.sidebar:
-    st.markdown("<h1 style='text-align: center;'>🔬</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>False Position Method - Exponential Solver</h3>", unsafe_allow_html=True)
-    st.divider()
-    st.header("🛠️ Input Parameters")
-    func_input = st.text_input("Function f(x):", "exp(x) - 20")
-    x_start = st.number_input("Lower Bound (x):", value=2.0)
-    y_start = st.number_input("Upper Bound (y):", value=3.0)
-    tol = st.number_input("Tolerance (ε):", value=0.0001, format="%.6f")
-    
-    st.divider()
-    st.info("Tip: Use the Table of Values to verify if a sign change exists within your chosen interval.")
+# CSS para sa Presko at Professional look (Mint & Navy Theme)
+st.markdown("""
+    <style>
+    .stApp { background-color: #f4f9f9; }
+    .input-card { background-color: #ffffff; padding: 25px; border-radius: 15px; border: 1px solid #e0f2f1; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    div[data-testid="stMetricValue"] { color: #00796b; font-weight: bold; }
+    .step-card { 
+        background-color: white; border-radius: 10px; padding: 20px; 
+        margin-bottom: 20px; border-left: 6px solid #4db6ac;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.02);
+    }
+    .final-verdict {
+        background-color: #e0f2f1;
+        padding: 20px;
+        border-radius: 15px;
+        border: 2px solid #4db6ac;
+        color: #004d40;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.title("🚀 Exponential Root Finder")
-st.caption("False Position Method (Regula Falsi) for Transcendental Equations")
+# --- AUTO-BRACKETING LOGIC ---
+def find_valid_bracket(f, a, b):
+    search_range = 2.0
+    for _ in range(50): 
+        if f(a) * f(b) < 0:
+            return a, b, True
+        a -= search_range
+        b += search_range
+    return a, b, False
 
-try:
-    x_sym = sp.symbols('x')
-    expr = sp.sympify(func_input)
-    f = sp.lambdify(x_sym, expr, 'numpy')
+# --- HEADER ---
+st.title("🔬 False Position - Exponential Solver")
+st.markdown("##### Developed by Andy Lasala and Francis Mangalindan")
+st.write("---")
 
-    # --- 1. TABLE OF VALUES ---
-    st.write("### 📋 Table of Values")
-    tov_x = np.linspace(x_start - 1, y_start + 1, 10)
-    tov_y = f(tov_x)
-    tov_df = pd.DataFrame({"x": tov_x, "f(x)": tov_y})
-    st.dataframe(tov_df.style.format("{:.2f}"), use_container_width=True)
+# --- INPUT TABLE (Main Body) ---
+with st.container():
+    st.markdown("### 📋 System Input Table")
+    c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+    with c1: func_input = st.text_input("Function f(x)", "exp(x) - 20")
+    with c2: a_in = st.number_input("Lower Bound (a)", value=2.0, format="%.4f")
+    with c3: b_in = st.number_input("Upper Bound (b)", value=3.0, format="%.4f")
+    with c4: tol = st.number_input("Tolerance (ε)", value=0.0001, format="%.6f")
 
-    if st.button("Run Full Analysis"):
-        with st.status("🚀 Processing Numerical Method...", expanded=False) as status:
-            time.sleep(0.6)
-            st.write("Computing iterative approximations...")
-            time.sleep(0.6)
-            st.write("Validating convergence criteria...")
-            time.sleep(0.4)
-            status.update(label="Analysis Complete", state="complete")
+    run_btn = st.button("🚀 EXECUTE FULL ANALYSIS", use_container_width=True)
 
-        if f(x_start) * f(y_start) >= 0:
-            st.error("❌ **Root Bracketing Error:** f(x) and f(y) must have opposite signs.")
-        else:
-            data, steps = [], []
-            x_c, y_c, z_old = x_start, y_start, 0
+if run_btn:
+    try:
+        # Math Setup
+        x_sym = sp.symbols('x')
+        expr = sp.sympify(func_input)
+        f_num = sp.lambdify(x_sym, expr, 'numpy')
 
-            for i in range(1, 21):
-                fx, fy = f(x_c), f(y_c)
-                z_c = (x_c * fy - y_c * fx) / (fy - fx)
-                fz = f(z_c)
-                rel_err = abs((z_c - z_old)/z_c)*100 if i > 1 else 100
+        # Check and Auto-Bracket
+        a, b = a_in, b_in
+        is_valid = True
+        if f_num(a) * f_num(b) >= 0:
+            st.warning("⚠️ **No Sign Change:** System is searching for a valid interval...")
+            a, b, found = find_valid_bracket(f_num, a, b)
+            if not found:
+                st.error("❌ **Search Failed:** Could not find a root automatically.")
+                is_valid = False
+            else:
+                st.success(f"✅ **Interval Adjusted:** [{a:.2f}, {b:.2f}]")
+
+        if is_valid:
+            data, detailed_steps = [], []
+            z_old = 0
+            
+            for i in range(1, 21): # Up to 20 iterations
+                fa, fb = f_num(a), f_num(b)
+                z = (a * fb - b * fa) / (fb - fa)
+                fz = f_num(z)
+                err = abs((z - z_old)/z)*100 if i > 1 else 100
                 
-                sign_str = "Positive" if fz > 0 else "Negative"
-                data.append({"Iter": i, "x": x_c, "y": y_c, "z": z_c, "f(z)": fz, "Sign": sign_str, "Error%": rel_err})
-                steps.append(f"**Iteration {i}:** $z = \\frac{{({x_c:.2f})({fy:.2f}) - ({y_c:.2f})({fx:.2f})}}{{{fy:.2f} - ({fx:.2f})}} = {z_c:.4f}$")
-                
+                data.append({"Iter": i, "a": a, "b": b, "f(a)": fa, "f(b)": fb, "z": z, "f(z)": fz, "Error%": err})
+                detailed_steps.append({"iter": i, "a": a, "b": b, "fa": fa, "fb": fb, "z": z, "fz": fz})
+
                 if abs(fz) < tol: break
-                if f(x_c) * fz < 0: y_c = z_c
-                else: x_c = z_c
-                z_old = z_c
+                if f_num(a) * fz < 0: b = z
+                else: a = z
+                z_old = z
 
             df = pd.DataFrame(data)
 
-            st.success(f"✅ **Convergence Achieved:** Calculated Root z ≈ {z_c:.4f}")
-            
-            # --- TABS (Added Export Tab) ---
-            t1, t2, t3, t4, t5 = st.tabs(["📊 Analytics", "📑 Solution Steps", "🎯 Verification", "📥 Export Report", "ℹ️ About"])
-            
-            with t1:
-                col1, col2 = st.columns([1.2, 1])
-                with col1:
-                    st.write("#### Iteration Log")
-                    st.dataframe(df.style.format({"x":"{:.2f}","y":"{:.2f}","z":"{:.4f}","f(z)":"{:.4f}","Error%":"{:.2f}"}), use_container_width=True)
-                with col2:
-                    st.write("#### Convergence Plot")
-                    fig, ax = plt.subplots(); ax.plot(df['Iter'], df['Error%'], marker='o', color='#0078D4')
-                    ax.set_ylabel("Error (%)"); ax.set_xlabel("Iteration"); ax.grid(True, alpha=0.3)
-                    st.pyplot(fig)
+            # --- DISPLAY TABS ---
+            tab1, tab2, tab3 = st.tabs(["📊 Analytics & Table", "📝 Step-by-Step Long Hand", "📥 Export"])
 
-            with t2:
-                for s in steps:
-                    st.markdown(s)
-                    st.divider()
-
-            with t3:
-                st.write("#### 🎯 Proof of Accuracy")
-                check_val = f(z_c)
-                st.latex(f"f({z_c:.4f}) = {check_val:.8f}")
-                st.metric(label="Residual Error |f(z)|", value=f"{check_val:.8f}")
-                if abs(check_val) < 0.01:
-                    st.success("### ⭐ VERDICT: VALIDATED")
-                else:
-                    st.warning("Precision below preferred threshold.")
-
-            # --- EXPORT TAB (The Print Replacement) ---
-            with t4:
-                st.write("#### 📥 Download Official Report")
-                st.write("Click the button below to export the iterative data to a CSV file for printing or documentation.")
+            with tab1:
+                st.markdown("#### 📑 Iteration Summary Table")
+                st.dataframe(df.style.format("{:.6f}"), use_container_width=True)
                 
-                # Convert DF to CSV
-                csv_data = df.to_csv(index=False).encode('utf-8')
-                
-                st.download_button(
-                    label="Download Iteration Table (CSV)",
-                    data=csv_data,
-                    file_name=f"False_Position_Report_Andy_Lasala.csv",
-                    mime="text/csv",
-                )
+                # Plotly Graph
+                x_vals = np.linspace(a_in - 1, b_in + 1, 200)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=x_vals, y=f_num(x_vals), name="f(x)", line=dict(color='#00796b', width=3)))
+                fig.add_hline(y=0, line_dash="dash", line_color="gray")
+                fig.add_trace(go.Scatter(x=[z], y=[0], mode='markers', marker=dict(size=12, color='red'), name="Root"))
+                fig.update_layout(template="plotly_white", title="Convergence Graph")
+                st.plotly_chart(fig, use_container_width=True)
 
-            with t5:
-                st.write("### System Information")
-                st.write("**Lead Developer:** Andy Lasala")
-                st.info("Built with Python & Streamlit for Educational Numerical Method.")
+            with tab2:
+                st.markdown("### 🖋️ Detailed Mathematical Solution")
+                for s in detailed_steps:
+                    with st.container():
+                        st.markdown(f'<div class="step-card"><h4>Iteration {s["iter"]}</h4>', unsafe_allow_html=True)
+                        st.write(f"**Step 1:** Given $a = {s['a']:.6f}, f(a) = {s['fa']:.6f}$ and $b = {s['b']:.6f}, f(b) = {s['fb']:.6f}$")
+                        st.latex(r"z = \frac{a \cdot f(b) - b \cdot f(a)}{f(b) - f(a)}")
+                        st.latex(f"z = \\frac{{({s['a']:.4f})({s['fb']:.4f}) - ({s['b']:.4f})({s['fa']:.4f})}}{{{s['fb']:.4f} - ({s['fa']:.4f})}} = {s['z']:.6f}")
+                        st.write(f"**Step 2:** $f(z) = {s['fz']:.8f}$")
+                        st.markdown(f"**Result:** Replace {'b' if f_num(s['a'])*s['fz'] < 0 else 'a'} with z.</div>", unsafe_allow_html=True)
 
-except Exception as e:
-    st.info("👋 Welcome. Please enter a function to begin.")
+            with tab3:
+                st.download_button("📂 Download CSV Report", df.to_csv(index=False).encode('utf-8'), "Report.csv", "text/csv")
+
+            # --- THE FINAL ANSWER (Dito makikita ang sagot) ---
+            st.write("---")
+            st.markdown(f"""
+                <div class="final-verdict">
+                    <h2 style='text-align: center; color: #004d40;'>🎯 Final Answer</h2>
+                    <p style='text-align: center; font-size: 24px;'>
+                        The calculated root for the function <b>{func_input}</b> is approximately:<br>
+                        <span style='font-size: 40px; font-weight: bold;'>z ≈ {z:.6f}</span>
+                    </p>
+                    <p style='text-align: center;'>Converged in {len(df)} iterations with a residual error of {fz:.2e}.</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"⚠️ **Math Error:** Please use standard syntax. Example: exp(x)-20. Error: {e}")
