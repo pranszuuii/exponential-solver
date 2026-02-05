@@ -1,0 +1,30 @@
+# 🔬 False Position Method: Exponential Solver
+
+A professional Numerical Analysis dashboard designed to solve transcendental and algebraic equations using the **Regula Falsi (False Position)** method. Developed specifically for computer engineering students and educators.
+
+## 👥 Development Team
+* **Andy Lasala** - Lead Developer
+* **Francis Mangalindan** - Technical Collaborator
+
+## 🚀 Features
+* **Dynamic Equation Input:** Supports complex functions using standard Python mathematical syntax (e.g., `exp(x) - 20`).
+* **Auto-Bracketing Logic:** Automatically detects if a chosen interval fails to bracket a root and expands the search range to ensure continuous computation.
+* **Interactive Visualization:** Powered by **Plotly**, the dashboard provides a real-time graph of function behavior and the calculated root.
+* **Step-by-Step Derivation:** A dedicated tab that provides a "long-hand" mathematical walkthrough of each iteration, including formula substitutions.
+* **Accessibility-Focused UI:** Designed with a high-contrast "Mint & Navy" theme for better readability during classroom presentations.
+* **Professional Export:** Allows users to download a full CSV report of all iteration data for documentation purposes.
+
+## 🛠️ Technology Stack
+* **Language:** Python
+* **Framework:** Streamlit (Web UI)
+* **Mathematics:** SymPy (Symbolic math) & NumPy (Numerical calculations)
+* **Graphics:** Plotly (Interactive charts)
+
+## 📋 How to Use
+1. **Input Function:** Enter the function in terms of $x$ (e.g., `exp(x) - 10`).
+2. **Set Bounds:** Provide the lower ($a$) and upper ($b$) boundaries.
+3. **Set Tolerance:** Define the precision level ($\epsilon$).
+4. **Execute:** Click "Execute Full Analysis" to generate the root and the step-by-step report.
+
+## 📚 About the Method
+The **False Position Method** is a bracketing method that uses linear interpolation. It connects the function values at the boundaries with a straight line (chord) and finds where that line intersects the x-axis to estimate the next root.
